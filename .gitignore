@@ -1,3 +1,4 @@
 mariadb/data
 bitnami/moodledata
-bitnami/moodle
+bitnami/moodle/*
+!bitnami/moodle/config.php
