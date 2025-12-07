@@ -1,0 +1,83 @@
+services:
+  los-rezagados-proxy:
+    image: nginx:alpine
+    container_name: los-rezagados-proxy
+    restart: always
+    expose:
+      - "8080"
+      - "8443"
+    volumes:
+      - ./proxy/conf:/etc/nginx/conf.d
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
+    depends_on:
+      - adminer
+      - certbot
+      - moodle
+    networks:
+      - g10-network
+      - proyecto
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: g10-certbot
+    restart: always
+    volumes:
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $!; done;'"
+    networks:
+      - g10-network
+
+  mariadb:
+    image: mariadb:11.8
+    container_name: g10-mariadb
+    restart: always
+    environment:
+        MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+        MARIADB_DATABASE: db1
+        MARIADB_USER: funny
+        MARIADB_PASSWORD: sub
+    volumes:
+      - ./mariadb/data:/var/lib/mysql
+    networks:
+      - g10-network
+
+  adminer:
+    image: adminer
+    container_name: g10-adminer
+    restart: always
+    depends_on:
+      - mariadb
+    networks:
+      - g10-network
+
+  moodle:
+    image: bitnami/moodle:4.5.1
+    container_name: los-rezagados-moodle
+    networks:
+      - g10-network
+      
+    
+    volumes:
+      - ./bitnami/moodle:/bitnami/moodle
+      - ./bitnami/moodledata:/bitnami/moodledata
+    environment:
+      - MOODLE_DATABASE_HOST=mariadb
+      - MOODLE_DATABASE_PORT_NUMBER=3306
+      - MOODLE_DATABASE_USER=bn_moodle
+      - MOODLE_DATABASE_NAME=bitnami_moodle
+      # ALLOW_EMPTY_PASSWORD is recommended only for development.
+      - ALLOW_EMPTY_PASSWORD=yes
+
+    depends_on:
+      - mariadb
+      
+
+networks:
+  g10-network:
+    driver: bridge
+    name: g10-network
+    
+  proyecto:
+    external: true

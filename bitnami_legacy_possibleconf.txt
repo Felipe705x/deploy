@@ -1,0 +1,24 @@
+	moodle:
+		image:bitnamilegacy/moodle:4.5.1-debian-12-r0
+		container_name: los-rezagados-moodle
+		networks:
+	      		- g10-network
+      	      		- proyecto
+		ports: 
+			-"8080:8080"
+			-"8443:8443"
+	 	volumes:
+			- moodle_data:./bitnami/moodle
+      			- moodledata_data:./bitnami/moodledata
+		environment:
+		- ALLOW_EMPTY_PASSWORD=no
+      		- MOODLE_DATABASE_HOST=mariadb
+      		- MOODLE_DATABASE_USER=funny_username
+      		- MOODLE_DATABASE_PASSWORD=subliminal_message
+      		- MOODLE_DATABASE_NAME=database1
+
+		depends_on:
+      			- mariadb
+			- los-rezagados-proxy
+			- adminer
+
