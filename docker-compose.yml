@@ -3,43 +3,33 @@ services:
     image: nginx:alpine
     container_name: los-rezagados-proxy
     restart: always
-    expose:
-      - "8080"
-      - "8443"
+    ports:
+      - "8080:8080"
+      - "8443:8443"
     volumes:
       - ./proxy/conf:/etc/nginx/conf.d
-      - ./certbot/www:/var/www/certbot
-      - ./certbot/conf:/etc/letsencrypt
     depends_on:
       - adminer
-      - certbot
       - moodle
     networks:
       - g10-network
       - proyecto
 
-  certbot:
-    image: certbot/certbot:latest
-    container_name: g10-certbot
-    restart: always
-    volumes:
-      - ./certbot/www:/var/www/certbot
-      - ./certbot/conf:/etc/letsencrypt
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $!; done;'"
-    networks:
-      - g10-network
-
   mariadb:
     image: mariadb:11.8
     container_name: g10-mariadb
     restart: always
+    command: [
+      "--character-set-server=utf8mb4",
+      "--collation-server=utf8mb4_unicode_ci",
+      "--skip-character-set-client-handshake",
+      "--transaction-isolation=READ-COMMITTED"
+    ]
     environment:
         MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-        MARIADB_DATABASE: db1
-        MARIADB_USER: funny
-        MARIADB_PASSWORD: sub
     volumes:
-      - ./mariadb/data2:/var/lib/mysql
+      - ./mariadb/data:/var/lib/mysql
+      - ./mariadb/init:/docker-entrypoint-initdb.d
     networks:
       - g10-network
 
@@ -65,10 +55,14 @@ services:
     environment:
       - MOODLE_DATABASE_HOST=mariadb
       - MOODLE_DATABASE_PORT_NUMBER=3306
-      - MOODLE_DATABASE_NAME=db1
-      - MOODLE_DATABASE_USER=funny
-      - MOODLE_DATABASE_PASSWORD=sub
+      - MOODLE_DATABASE_NAME=moodle_db
+      - MOODLE_DATABASE_USER=moodle_user
+      - MOODLE_DATABASE_PASSWORD=moodle_password
+      - MOODLE_USERNAME=admin
+      - MOODLE_PASSWORD=admin_password
       - ALLOW_EMPTY_PASSWORD=no
+      - MOODLE_REVERSEPROXY=yes
+      - BITNAMI_DEBUG=true
 
     depends_on:
       - mariadb
@@ -80,4 +74,5 @@ networks:
     name: g10-network
     
   proyecto:
-    external: true
+    driver: bridge
+    name: proyecto
